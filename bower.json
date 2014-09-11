@@ -1,0 +1,33 @@
+{
+  "name": "angular-user-authentication",
+  "version": "0.0.1",
+  "homepage": "https://github.com/davestone/angular-user-authentication",
+  "authors": [
+    "Dave Stone <dave@davecstone.com>"
+  ],
+  "description": "Authenticate users via your API for Angular.js applications.",
+  "main": "angular-user-authentication.js",
+  "moduleType": [
+    "amd"
+  ],
+  "keywords": [
+    "angular",
+    "angularjs",
+    "authentication",
+    "session",
+    "users",
+    "auth",
+    "current-user"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "tests"
+  ],
+  "devDependencies": {
+    "angular": "~1.2.24",
+    "angular-mocks": "~1.2.24"
+  }
+}

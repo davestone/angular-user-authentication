@@ -1,0 +1,30 @@
+{
+  "author": "Dave Stone <dave@davecstone.com> (http://davecstone.com)",
+  "name": "angular-user-authentication",
+  "description": "Authenticate users via your API for Angular.js applications.",
+  "version": "0.0.1",
+  "scripts": {
+    "pretest": "./node_modules/.bin/jshint angular-user-authentication.js angular-user-authentication-spec.js",
+    "test": "./node_modules/karma/bin/karma start karma.conf.js"
+  },
+  "homepage": "https://github.com/davestone/angular-user-authentication",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davestone/angular-user-authentication"
+  },
+  "keywords": [],
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "bower": "^1.3.9",
+    "chai": "^1.9.1",
+    "jshint": "^2.5.5",
+    "karma": "latest",
+    "karma-chai": "^0.1.0",
+    "karma-coverage": "^0.2.6",
+    "karma-mocha": "^0.1.8",
+    "karma-phantomjs-launcher": "^0.1.4",
+    "mocha": "^1.21.4",
+    "phantomjs": "latest"
+  }
+}
