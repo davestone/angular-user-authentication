@@ -2,7 +2,8 @@
 
 Authenticate users via your API for Angular.js applications.
 
-NOTE: I've used this on Angular app in production, however consider it a work in progress.
+[![Build Status](https://travis-ci.org/davestone/angular-user-authentication.png?branch=master)](https://travis-ci.org/davestone/angular-user-authentication)
+[![Coverage Status](https://coveralls.io/repos/davestone/angular-user-authentication/badge.png)](https://coveralls.io/r/davestone/angular-user-authentication)
 
 ### How to use it
 
