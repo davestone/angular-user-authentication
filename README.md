@@ -1,4 +1,4 @@
-# angular-user-authentication
+# Angular.js User Authentication
 
 Authenticate users via your API for Angular.js applications.
 
@@ -59,10 +59,6 @@ Configure, for example:
   });
 }])
 ```
-
-### Continuous Integration
-
-...
 
 ### Contribute
 
