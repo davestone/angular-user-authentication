@@ -14,7 +14,7 @@ module.exports = function(config) {
 			'angular-user-authentication.js': ['coverage']
 		},
 		coverageReporter: {
-			type: 'html',
+			type: 'lcov',
 			dir: 'coverage/'
 		},
     reporters: ['progress', 'coverage'],
