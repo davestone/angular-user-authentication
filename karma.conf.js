@@ -11,12 +11,12 @@ module.exports = function(config) {
     ],
     frameworks: ['mocha', 'chai'],
     preprocessors: {
-			'angular-user-authentication.js': ['coverage']
-		},
-		coverageReporter: {
-			type: 'lcov',
-			dir: 'coverage/'
-		},
+      'angular-user-authentication.js': ['coverage']
+    },
+    coverageReporter: {
+      type: 'lcov',
+      dir: 'coverage/'
+    },
     reporters: ['progress', 'coverage'],
     singleRun: true
   });
