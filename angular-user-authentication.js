@@ -3,193 +3,211 @@
 
   angular.module('davestone.userAuthentication', [])
     .provider('UserAuthentication', function() {
-      // Config
-      this.cookieExpiration = 0;
+
+      /*
+       * Config
+       */
+
+      // Defaults
+      this.cookieExpiry = 604800; // 1 week
       this.cookieName = '_session';
       this.cookieSecure = false;
       this.cookieDomain = '';
       this.cookiePath = '/';
-      this.user = { user: 'guest' };
-      this.path = '/';
-      this.remember = false;
-      this.sessionRequiredPath = '/sign_in';
-      this.noSessionRequiredPath = '/';
+      this.caseSensitiveLogin = false;
+      this.identity = {};
+      this.pathIdentityRequired = '/';
+      this.pathNoIdentityRequired = '/';
 
+      // Overload
       this.set = function(key, value) {
         this[key] = value;
       };
 
-      // Service
-      this.$get = ['$rootScope', '$cookieStore', '$http', '$q', function($rootScope, $cookieStore, $http, $q) {
+      /*
+       * Service
+       */
+
+      this.$get = ['$rootScope', '$q', '$http', function($rootScope, $q, $http) {
         var service = {};
         service.config = this;
-        service.user = service.config.user;
-        service.store = $cookieStore;
-        service.isSignedIn = false;
+        service.identity = service.config.identity;
+        service.identified = false;
 
-        service.deauthenticate = function() {
-          this.forget();
+        service.authenticate = function(login, password, remember) {
 
-          if (this.config.deauthenticate !== undefined) {
-            $http(this.config.deauthenticate).
-              success(function(data, status, headers, config) {
-                $rootScope.$broadcast('session:destroyed', {
-                  status: status,
-                  data: data,
-                  headers: headers,
-                  config: config
-                });
-              }).
-              error(function(data, status, headers, config) {
-                $rootScope.$broadcast('session:error:deauthenticate', {
-                  status: status,
-                  data: data,
-                  headers: headers,
-                  config: config
-                });
+          if (service.identified === true) return;
+
+          if (service.config.caseSensitiveLogin === false) { // TEST
+            login = angular.lowercase(login);
+          }
+
+          if (typeof service.config.authenticate === 'function') {
+            $http(service.config.authenticate(login, password)).success(function(data) {
+              service.setCookie({
+                domain: service.config.cookieDomain,
+                expirySeconds: (remember ? service.config.cookieExpiry : 0), // TEST
+                path: service.config.cookiePath,
+                secure: service.config.cookieSecure,
+                value: data
               });
-          } else {
-            $rootScope.$broadcast('session:destroyed', {});
+
+              $rootScope.$broadcast('userAuthentication:authenticated');
+
+              service.identify();
+            }).error(function(data) {
+              $rootScope.$broadcast('userAuthentication:error', { code: 'authentication-failed' });
+            });
           }
         };
 
-        service.authenticate = function(login, password) {
-          $http(this.config.authenticate(angular.lowercase(login), password)).
-            success(function(data, status, headers, config) {
-              var options = {
-                expires: service.config.cookieExpiration,
-                secure: service.config.cookieSecure,
-                domain: service.config.cookieDomain,
-                path: service.config.cookiePath
-              };
+        service.deauthenticate = function() {
+          if (service.identified === false) return;
 
-              if (service.config.remember === false) {
-                delete options.expires;
-              }
-
-              service.store.put( service.config.cookieName, data, options);
-
-              service.identify();
-            }).
-            error(function(data, status, headers, config) {
-              $rootScope.$broadcast('session:error:authenticate', {
-                status: status,
-                data: data,
-                headers: headers,
-                config: config
-              });
+          if (typeof service.config.deauthenticate === 'function') {
+            $http(service.config.deauthenticate(service.getCookie())).success(function(data) {
+              $rootScope.$broadcast('userAuthentication:deauthenticated');
+            }).error(function(data) {
+              $rootScope.$broadcast('userAuthentication:error', { code: 'deauthentication-failed' });
             });
+          }
+
+          service.unidentify();
         };
 
         service.identify = function() {
           var promise = $q.defer();
 
-          if (this.isSoftSignedIn() === false) {
-            promise.reject();
-            return promise.promise;
+          if (service.hasCookie() === false) {
+            promise.resolve();
+          } else {
+            $http(service.config.identify(service.getCookie())).success(function(data) {
+              service.identified = true;
+              service.identity = data;
+
+              // event
+              $rootScope.$broadcast('userAuthentication:identity:changed', service.identity);
+
+              promise.resolve();
+            }).error(function(data) {
+              // event
+              $rootScope.$broadcast('userAuthentication:error', { code: 'identification-failed' });
+
+              promise.reject();
+            });
           }
 
-          $http(this.config.identify(this.getCookie())).
-            success(function(data, status, headers, config) {
-              service.isSignedIn = true;
-              service.user = data;
-              // resolve
-              promise.resolve();
-              // events
-              $rootScope.$broadcast('session:created', {
-                status: status,
-                data: data,
-                headers: headers,
-                config: config
-              });
-            }).
-            error(function(data, status, headers, config) {
-              service.forget();
-              // resolve
-              promise.reject();
-              // events
-              $rootScope.$broadcast('session:error:identify', {
-                status: status,
-                data: data,
-                headers: headers,
-                config: config
-              });
-            });
           return promise.promise;
         };
 
-        service.forget = function() {
-          this.user = service.config.user;
-          this.isSignedIn = false;
-          this.store.put( this.config.cookieName, {}, {
-            expires: 0,
+        service.unidentify = function() {
+          service.identity = service.config.identity;
+          service.identified = false;
+
+          service.setCookie({
+            expirySeconds: 0,
             secure: service.config.cookieSecure,
             domain: service.config.cookieDomain,
-            path: service.config.cookiePath
+            path: service.config.cookiePath,
+            value: {}
           });
+
+          // event
+          $rootScope.$broadcast('userAuthentication:identity:changed', service.identity);
         };
 
-        service.recall = function() {
-          if (Object.keys(this.getCookie()).length > 0) {
-            this.config.remember = true; // this user obviously wants to be remembered
-            this.identify();
+        service.hasCookie = function() { // TEST
+          return Boolean(Object.keys(service.getCookie()).length);
+        };
+
+        service.getCookie = function() { // TEST
+        	var cookies = document.cookie.split('; ');
+        	for (var i=0; i<cookies.length; i++) {
+        		var cookie = cookies[i].split('=');
+
+        		if(cookie[0] === service.config.cookieName) {
+        			return JSON.parse(unescape(cookie[1]));
+        		}
+        	}
+          return {};
+        };
+
+        service.setCookie = function(options) { // TEST
+          var cookie = service.config.cookieName + '=' + escape(JSON.stringify(options.value)) + '; ';
+
+          // calculate an expiry date
+          if (options.expirySeconds <= 0) {
+            options.expires = false;
+          } else {
+            var expiryDateTime = new Date(),
+                time = expiryDateTime.getTime() + (options.expirySeconds * 1000);
+            expiryDateTime.setTime(time);
+            options.expires = expiryDateTime.toUTCString();
           }
+
+          angular.forEach(['domain', 'expires', 'path', 'secure'], function(name, i) {
+            if (typeof options[name] === 'boolean' && options[name] === true) {
+              cookie += name+'; ';
+            } else if (typeof options[name] !== 'boolean') {
+              cookie += name+'='+options[name]+'; ';
+            }
+          });
+
+        	document.cookie = cookie;
+          return cookie;
         };
 
-        service.getCookie = function() {
-          return this.store.get( this.config.cookieName ) || {};
-        };
-
-        service.isSoftSignedIn = function() {
-          var cookie = this.getCookie();
-          if (Object.keys(cookie).length > 0) return true;
-          return false;
-        };
+        // Got Cookie? Let's try it...
+        if (service.hasCookie() === true) {
+          service.identify();
+        }
 
         return service;
       }];
     })
 
-    // Controller Helper
-    .controller('SessionHelper', ['$scope', 'Session', function($scope, Session) {
+    /*
+     * Controller Helper
+     */
 
-      $scope.Session = Session;
-      $scope.remember = Session.config.remember;
+    .controller('UserAuthenticationCtrl', ['$scope', 'UserAuthentication', function($scope, UserAuthentication) {
 
-      $scope.signIn = function() {
-        Session.authenticate($scope.login, $scope.password);
-        Session.config.remember = !!$scope.remember;
+      $scope.identity = UserAuthentication.identity;
+      $scope.identified = UserAuthentication.identified;
+
+      $scope.$on('userAuthentication:identity:changed', function(event, identity) {
+        $scope.identity = UserAuthentication.identity;
+        $scope.identified = UserAuthentication.identified;
+      });
+
+      $scope.authenticate = function(session) {
+        UserAuthentication.authenticate(session.login, session.password, session.remember);
       };
 
-      $scope.signOut = function() {
-        Session.deauthenticate();
+      $scope.deauthenticate = function() {
+        UserAuthentication.deauthenticate();
       };
 
     }])
 
-    // Route resolve Helpers
-    .factory('SessionRequired', ['$location', 'Session',
-      function($location, Session) {
-        return function() {
-          return Session.identify().then(function() {
-            // pass
-          }, function() {
-            Session.config.path = $location.path();
-            $location.path(Session.config.sessionRequiredPath);
-          });
-        };
-      }
-    ])
+    /*
+     * Route Resolve Helpers
+     */
 
-    .factory('NoSessionRequired', ['$location', 'Session',
-      function($location, Session) {
-        return function(path) {
-          return Session.identify().then(function() {
-            $location.path(path || Session.config.noSessionRequiredPath);
-          }, function() {
-            // pass
-          });
-        };
-      }
-    ]);
+    .factory('IdentityRequired', ['$location', 'UserAuthentication', function($location, UserAuthentication) {
+      UserAuthentication.identify().then(function() {
+        if (UserAuthentication.identified === false) {
+          $location.path(UserAuthentication.config.pathIdentityRequired);
+        }
+      });
+    }])
+
+    .factory('NoIdentityRequired', ['$location', 'UserAuthentication', function($location, UserAuthentication) {
+      UserAuthentication.identify().then(function() {
+        if (UserAuthentication.identified === true) {
+          $location.path(UserAuthentication.config.pathNoIdentityRequired);
+        }
+      });
+    }]);
+
 }());

@@ -27,17 +27,19 @@ Add the module ```davestone.userAuthentication``` as a dependency to your app mo
 angular.module('myApp', ['davestone.userAuthentication']);
 ```
 
-Configure, for example:
+And config the provider. Here's an example, with comments explaining:
 
 ```javascript
 .config(['UserAuthenticationProvider', function(UserAuthenticationProvider) {
-  UserAuthenticationProvider.set('remember', true);
-  UserAuthenticationProvider.set('path', '/');
-  UserAuthenticationProvider.set('cookieName', '_session');
-  UserAuthenticationProvider.set('cookieDomain', 'domain.com');
-  UserAuthenticationProvider.set('cookieExpiration', 1209600000);
-  UserAuthenticationProvider.set('sessionRequiredPath', '/');
-  UserAuthenticationProvider.set('noSessionRequiredPath', '/');
+  UserAuthenticationProvider.set('cookieName', '_session');       // default
+  UserAuthenticationProvider.set('cookieDomain', '');             // default
+  UserAuthenticationProvider.set('cookiePath', '/');              // default
+  UserAuthenticationProvider.set('cookieExpiry', 604800);         // default (1 week)
+  UserAuthenticationProvider.set('cookieSecure', false);          // default
+  UserAuthenticationProvider.set('identity', {});                 // default (guest model)
+  UserAuthenticationProvider.set('caseSensitiveLogin', false);    // default
+  UserAuthenticationProvider.set('pathIdentityRequired', '/');    // default
+  UserAuthenticationProvider.set('pathNoIdentityRequired', '/');  // default
 
   UserAuthenticationProvider.set('authenticate', function(login, password) {
     return {
@@ -45,6 +47,14 @@ Configure, for example:
       url: 'https://api.domain.com/session',
       withCredentials: true,
       data: { "login" : login, "password" : password }
+    }
+  });
+
+  UserAuthenticationProvider.set('deauthenticate', function(persist) { // optional
+    return {
+      method: 'DELETE',
+      url: window.__env.API_URL+'/users/sessions',
+      withCredentials: true
     }
   });
 
@@ -58,6 +68,63 @@ Configure, for example:
     };
   });
 }])
+```
+
+##### Controller Helper
+
+The ```UserAuthenticationCtrl``` controller allows you to quickly integrate throughout your application.
+
+###### Authenticate
+
+```html
+<form ng-controller="UserAuthenticationCtrl" ng-submit="authenticate(session)">
+  <div>
+    <label for="session.login">Personal e-mail address:</label>
+    <input type="email" id="session.login" ng-model="session.login" required />
+  </div>
+
+  <div>
+    <label for="session.password">Password:</label>
+    <input type="password" id="session.password" ng-model="session.password" required />
+  </div>
+
+  <div>
+    <button type="submit">Sign in</button>
+    <label for="session.remember">
+      <input type="checkbox" id="session.remember" ng-model="session.remember" /> Remember me
+    </label>
+  </div>
+</form>
+```
+
+###### De-authenticate
+
+```html
+<a ng-controller="UserAuthenticationCtrl" ng-show="identified" ng-click="deauthenticate()">Sign Out of {{identity.email}}</a>
+```
+
+##### Resolve Helper
+
+The ```IdentityRequired``` and ```NoIdentityRequired``` factories used in a $route's resolve allows you to quickly require that said $route has an identify, or not as the case might be. If a resolve isn't met, the user is redirected to the apt config path, i.e. ```pathIdentityRequired```.
+
+```javascript
+$routeProvider.when('/path', {
+  templateUrl: '/path.html',
+  resolve: {
+    acl: ['IdentifyRequired', function(IdentityRequired) { return IdentifyRequired; }]
+  }
+});
+```
+
+##### Events
+
+This events are broadcast's at apt points in time:
+
+```javascript
+userAuthentication:authenticated
+userAuthentication:deauthenticated
+userAuthentication:identity:changed
+userAuthentication:error
 ```
 
 ### Contribute
