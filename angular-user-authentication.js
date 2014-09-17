@@ -70,6 +70,8 @@
             }).error(function(data) {
               $rootScope.$broadcast('userAuthentication:error', { code: 'deauthentication-failed' });
             });
+          } else {
+            $rootScope.$broadcast('userAuthentication:deauthenticated');
           }
 
           service.unidentify();
