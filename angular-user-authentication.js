@@ -197,7 +197,7 @@
      */
 
     .factory('IdentityRequired', ['$location', 'UserAuthentication', function($location, UserAuthentication) {
-      UserAuthentication.identify().then(function() {
+      return UserAuthentication.identify().then(function() {
         if (UserAuthentication.identified === false) {
           $location.path(UserAuthentication.config.pathIdentityRequired);
         }
@@ -205,7 +205,7 @@
     }])
 
     .factory('NoIdentityRequired', ['$location', 'UserAuthentication', function($location, UserAuthentication) {
-      UserAuthentication.identify().then(function() {
+      return UserAuthentication.identify().then(function() {
         if (UserAuthentication.identified === true) {
           $location.path(UserAuthentication.config.pathNoIdentityRequired);
         }
