@@ -8,7 +8,7 @@
   "description": "Authenticate users via your API for Angular.js applications.",
   "main": "angular-user-authentication.js",
   "moduleType": [
-    "amd"
+    "globals"
   ],
   "keywords": [
     "angular",
